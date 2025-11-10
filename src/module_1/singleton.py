@@ -1,3 +1,10 @@
+from datetime import date
+
+
+class MetaClassWithDate(type):
+    def __new__(mcs, name, bases, namespace, **kwargs):
+        namespace["created_at"] = date.today()
+        return super().__new__(mcs, name, bases, namespace, **kwargs)
 
 
 class SingletonMeta(type):
@@ -22,15 +29,19 @@ class Singleton:
 
 
 class User(Singleton):
-
     def __init__(self, name: str):
         self.name = name
 
 
 class Animal(metaclass=SingletonMeta):
-
     def __init__(self, name: str):
         self.name = name
+
+
+class Car(metaclass=MetaClassWithDate):
+    def __init__(self, name: str):
+        self.name = name
+
 
 if __name__ == "__main__":
     user_1 = User("Bob")
@@ -38,4 +49,6 @@ if __name__ == "__main__":
     print(user_1 is user_2)
     animal_1 = Animal("Fluffy")
     animal_2 = Animal("Kitty")
-    print(id(animal_1) , id(animal_2))
+    print(id(animal_1), id(animal_2))
+    car_1 = Car("Toyota")
+    print(car_1.created_at)

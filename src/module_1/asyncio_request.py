@@ -4,26 +4,35 @@ import json
 import aiohttp
 
 
+async def make_request(
+    url: str, semaphore: asyncio.Semaphore, session: aiohttp.ClientSession
+) -> tuple[str, int]:
+    async with semaphore:
+        try:
+            async with session.get(
+                url, timeout=aiohttp.ClientTimeout(total=10)
+            ) as response:
+                return url, response.status
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            return url, 0
+
+
 async def fetch_urls(urls: list[str], file_path: str) -> dict[str, int]:
     semaphore = asyncio.Semaphore(5)
-    results: dict[str, int] = dict()
 
     async with aiohttp.ClientSession() as session:
-        async def make_request(url: str):
-            async with semaphore:
-                try:
-                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
-                        return url, response.status
-                except (aiohttp.ClientError, asyncio.TimeoutError):
-                    return url, 0
+        requests = await asyncio.gather(
+            *[make_request(url, session=session, semaphore=semaphore) for url in urls]
+        )
 
-        url_status_pairs = await asyncio.gather(*[make_request(url) for url in urls])
-
-    results = dict(url_status_pairs)
+    results = dict(requests)
 
     with open(file_path, "w", encoding="utf-8") as f:
-        for url, status_code in url_status_pairs:
-            json_line = json.dumps({"url": url, "status_code": status_code}, ensure_ascii=False) + "\n"
+        for url, status_code in requests:
+            json_line = (
+                json.dumps({"url": url, "status_code": status_code}, ensure_ascii=False)
+                + "\n"
+            )
             f.write(json_line)
 
     return results

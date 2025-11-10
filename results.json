@@ -1,0 +1,3 @@
+{"url": "https://example.com", "status_code": 200}
+{"url": "https://httpbin.org/status/404", "status_code": 404}
+{"url": "https://nonexistent.url", "status_code": 0}

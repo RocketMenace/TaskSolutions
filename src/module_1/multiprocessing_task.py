@@ -12,6 +12,7 @@ from typing import Any
 def generate_data(number: int) -> list[int]:
     return [random.randint(1, 1000) for _ in range(number)]
 
+
 def process_number(number: int) -> dict[str, Any]:
     is_prime = True
     if number < 2:
@@ -51,7 +52,9 @@ def process_sequential(data: list[int]) -> list[dict[str, Any]]:
     return [process_number(number) for number in data]
 
 
-def process_with_thread_pool(data: list[int], max_workers: int | None = None) -> list[dict[str, Any]]:
+def process_with_thread_pool(
+    data: list[int], max_workers: int | None = None
+) -> list[dict[str, Any]]:
     results = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_number = {executor.submit(process_number, num): num for num in data}
@@ -67,48 +70,35 @@ def process_with_process_pool(data: list[int]) -> list[dict[str, Any]]:
 
 
 def worker_process(input_queue: Queue, output_queue: Queue) -> None:
-    """
-    Функция-воркер для отдельного процесса.
-    Обрабатывает числа из входной очереди и помещает результаты в выходную очередь.
-    """
     while True:
         number = input_queue.get()
-        if number is None:  # Сигнал завершения
+        if number is None:
             break
         result = process_number(number)
         output_queue.put(result)
 
 
 def process_with_separate_processes(data: list[int]) -> list[dict[str, Any]]:
-    """
-    Вариант В: Создание отдельных процессов с использованием
-    multiprocessing.Process и очередей (multiprocessing.Queue) для передачи данных.
-    """
     num_workers = cpu_count()
     input_queue = Queue()
     output_queue = Queue()
 
-    # Создаём процессы-воркеры
     processes = []
     for _ in range(num_workers):
         p = Process(target=worker_process, args=(input_queue, output_queue))
         p.start()
         processes.append(p)
 
-    # Отправляем данные в очередь
     for number in data:
         input_queue.put(number)
 
-    # Отправляем сигналы завершения
     for _ in range(num_workers):
         input_queue.put(None)
 
-    # Собираем результаты
     results = []
     for _ in range(len(data)):
         results.append(output_queue.get())
 
-    # Ждём завершения всех процессов
     for p in processes:
         p.join()
 
@@ -116,17 +106,14 @@ def process_with_separate_processes(data: list[int]) -> list[dict[str, Any]]:
 
 
 def save_results(results: list[dict[str, Any]], filename: str | Path) -> None:
-    """Сохраняет результаты обработки в JSON файл."""
     output_path = Path(filename)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
 
-def compare_performance(data: list[int], output_file: str | Path = "results.json") -> dict[str, Any]:
-    """
-    Сравнивает производительность всех вариантов обработки.
-    Возвращает словарь с результатами и временем выполнения.
-    """
+def compare_performance(
+    data: list[int], output_file: str | Path = "results.json"
+) -> dict[str, Any]:
     results = {}
     times = {}
 
@@ -185,7 +172,6 @@ def compare_performance(data: list[int], output_file: str | Path = "results.json
         }.get(method, method)
         print(f"{method_name:<30} {elapsed_time:<15.2f} {speedup:<15.2f}x")
 
-    # Сохраняем результаты
     output_data = {
         "performance": times,
         "results": results["process_pool"],  # Сохраняем результаты одного из вариантов
@@ -226,4 +212,3 @@ if __name__ == "__main__":
     data = generate_data(n)
 
     compare_performance(data, args.output)
-
