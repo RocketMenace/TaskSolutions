@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any
 
 
-def generate_data(number: int) -> list[int]:
-    return [random.randint(1, 1000) for _ in range(number)]
+def generate_data(number: int, max_value: int = 1000) -> list[int]:
+    return [random.randint(1, max_value) for _ in range(number)]
 
 
 def process_number(number: int) -> dict[str, Any]:
@@ -27,6 +27,11 @@ def process_number(number: int) -> dict[str, Any]:
             if number % i == 0:
                 is_prime = False
                 break
+        if is_prime and number > 100:
+            for i in range(sqrt_n, number // 3 + 1, 2):
+                if number % i == 0:
+                    is_prime = False
+                    break
 
     sum_of_squares = sum(int(digit) ** 2 for digit in str(number))
 
@@ -40,11 +45,62 @@ def process_number(number: int) -> dict[str, Any]:
         factorial_sum += fact
         temp //= 10
 
+    def fibonacci(n: int) -> int:
+        if n <= 1:
+            return n
+        a, b = 0, 1
+        for _ in range(2, min(n + 1, 1000)):
+            a, b = b, (a + b) % 1000000
+        return b
+
+    fib_value = fibonacci(number % 1000)
+
+    series_sum = 0.0
+    max_iterations = min(number, 10000)
+    for k in range(1, max_iterations + 1):
+        series_sum += 1.0 / (k * k)
+
+    def matrix_multiply(size: int) -> int:
+        size = min(size, 50)
+        matrix_a = [[(i * j + number) % 1000 for j in range(size)] for i in range(size)]
+        matrix_b = [[(i + j * number) % 1000 for j in range(size)] for i in range(size)]
+        result = [[0 for _ in range(size)] for _ in range(size)]
+
+        for i in range(size):
+            for j in range(size):
+                for k in range(size):
+                    result[i][j] += matrix_a[i][k] * matrix_b[k][j]
+                    result[i][j] %= 1000000
+
+        return sum(sum(row) for row in result) % 1000000
+
+    matrix_result = matrix_multiply(number % 20 + 5)
+
+    power_sum = 0
+    max_power = min(100, number // 10 + 1)
+    for k in range(1, max_power + 1):
+        power_sum += pow(number % 100, k, 1000000)
+        power_sum %= 1000000
+
+    divisors = []
+    if number > 1:
+        for i in range(1, int(number**0.5) + 1):
+            if number % i == 0:
+                divisors.append(i)
+                if i != number // i:
+                    divisors.append(number // i)
+    divisors_count = len(divisors)
+
     return {
         "number": number,
         "is_prime": is_prime,
         "sum_of_squares": sum_of_squares,
         "factorial_sum": factorial_sum,
+        "fibonacci_value": fib_value,
+        "series_sum": round(series_sum, 6),
+        "matrix_result": matrix_result,
+        "power_sum": power_sum,
+        "divisors_count": divisors_count,
     }
 
 
@@ -203,7 +259,6 @@ if __name__ == "__main__":
         default="multiprocessing_results.json",
         help="Имя выходного файла (по умолчанию: multiprocessing_results.json)",
     )
-
     args = parser.parse_args()
 
     n = args.number
